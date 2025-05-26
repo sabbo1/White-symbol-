@@ -445,15 +445,44 @@
       border: 4px solid rgba(0, 0, 0, 0.1);
       border-radius: 50%;
       border-top: 4px solid #2eaddc;
-      width: 40px;
-      height: 40px;
+      width: 30px;
+      height: 30px;
       animation: spin 1s linear infinite;
-      margin: 20px auto;
     }
 
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
+    }
+
+    .verification-steps {
+      margin-bottom: 15px;
+      text-align: left;
+    }
+
+    .verification-step {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .step-number {
+      background: #2eaddc;
+      color: #000;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-right: 10px;
+      font-weight: bold;
+      font-size: 12px;
+    }
+
+    .step-text {
+      color: #ccc;
+      font-size: 14px;
     }
   </style>
 </head>
@@ -545,9 +574,9 @@
       
       <div class="referral-container">
         <div class="referral-title">Invite Friends & Earn Tokens</div>
-        <div class="referral-code" id="referralCode">https://t.me/whitesymbol_bot?ref=USER123</div>
-        <button class="invite-btn" onclick="inviteFriend()">
-          <span class="invite-icon">馃摡</span> INVITE FRIEND
+        <div class="referral-code" id="referralCode">https://t.me/whitesymbol_bot?start=USER123</div>
+        <button class="invite-btn" id="inviteBtn">
+          <span class="invite-icon">📩</span> INVITE FRIEND
         </button>
         
         <div class="referral-stats">
@@ -577,27 +606,30 @@
 
     <div class="tab-bar">
       <div class="tab active" data-tab="home">
-        <div class="tab-icon">馃彔</div>
+        <div class="tab-icon">🏠</div>
         <div>HOME</div>
       </div>
       <div class="tab" data-tab="earn">
-        <div class="tab-icon">馃挵</div>
+        <div class="tab-icon">💰</div>
         <div>EARN</div>
       </div>
       <div class="tab" data-tab="balance">
-        <div class="tab-icon">馃拵</div>
+        <div class="tab-icon">💎</div>
         <div>BALANCE</div>
       </div>
       <div class="tab" data-tab="friends">
-        <div class="tab-icon">馃懃</div>
+        <div class="tab-icon">👥</div>
         <div>FRIENDS</div>
       </div>
     </div>
 
     <div class="verification-modal" id="verificationModal">
       <div class="verification-content">
-        <div class="verification-title" id="verificationTitle">Verify Telegram Join</div>
-        <p id="verificationText">Please join our Telegram channel first, then click Verify to confirm.</p>
+        <div class="verification-title" id="verificationTitle">Verify Task</div>
+        <div class="verification-steps" id="verificationSteps">
+          <!-- Steps will be added dynamically -->
+        </div>
+        <p id="verificationText">Please complete the steps above to verify</p>
         <div>
           <button class="verification-btn" id="verifyActionBtn">Verify</button>
           <button class="verification-btn cancel" onclick="closeVerificationModal()">Cancel</button>
@@ -639,13 +671,6 @@
       share: false,
       invite: false
     };
-    let taskVerification = {
-      telegram: false,
-      twitter: false,
-      share: false
-    };
-    
-    let allUsers = [];
     
     let currentUser = {
       id: '',
@@ -656,14 +681,14 @@
     const SOCIAL_LINKS = {
       telegram: "https://t.me/whitesymbo",
       twitter: "https://x.com/whitesymbol15?t=DmMQSl8PtoEb4AfRKYjlig&s=09",
-      share: "https://t.me/share/url?url=https://t.me/whitesymbol_bot?ref=USER123&text=Join%20WHITE%20SYMBOL%20Community%20and%20earn%20tokens!"
+      share: "https://t.me/share/url?url=https://t.me/whitesymbol_bot?start=USER123&text=Join%20WHITE%20SYMBOL%20Community%20and%20earn%20tokens!"
     };
 
     document.addEventListener('DOMContentLoaded', function() {
       const tg = window.Telegram.WebApp;
       tg.expand();
       
-      // Load user data immediately
+      // Load user data
       loadUserData();
       
       document.getElementById('main-app').style.display = 'block';
@@ -672,20 +697,11 @@
       currentUser.id = tgUser?.id ? "tg_" + tgUser.id.toString() : "user_" + Math.random().toString(36).substring(2, 10);
       currentUser.username = tgUser?.username ? `@${tgUser.username}` : "You";
       
-      // Save user data with the new ID
-      saveUserData();
-
-      const ADMIN_USER_ID = "YOUR_TELEGRAM_USER_ID";
-      const isAdmin = tgUser?.id === ADMIN_USER_ID;
-      
-      if (isAdmin) {
-        document.getElementById('adminBtn').style.display = 'block';
-        document.getElementById('adminBtn').addEventListener('click', openAdminPanel);
-      }
-      
+      // Set referral link
       document.getElementById('referralCode').textContent = `https://t.me/whitesymbol_bot?start=${currentUser.id}`;
       SOCIAL_LINKS.share = `https://t.me/share/url?url=https://t.me/whitesymbol_bot?start=${currentUser.id}&text=Join%20WHITE%20SYMBOL%20Community%20and%20earn%20tokens!`;
 
+      // Event listeners
       document.getElementById('telegramTaskBtn').addEventListener('click', function() {
         startTaskVerification('telegram');
       });
@@ -698,7 +714,7 @@
         startTaskVerification('share');
       });
       
-      document.getElementById('inviteTaskBtn').addEventListener('click', function() {
+      document.getElementById('inviteBtn').addEventListener('click', function() {
         inviteFriend();
       });
       
@@ -709,9 +725,20 @@
         });
       });
       
+      // Check for admin
+      const ADMIN_USER_ID = "YOUR_TELEGRAM_USER_ID";
+      const isAdmin = tgUser?.id === ADMIN_USER_ID;
+      if (isAdmin) {
+        document.getElementById('adminBtn').style.display = 'block';
+        document.getElementById('adminBtn').addEventListener('click', openAdminPanel);
+      }
+      
+      // Check referral
+      checkReferral();
+      
+      // Update UI
       updateTokenBalance();
       updateTaskButtons();
-      checkReferral();
     });
     
     function loadUserData() {
@@ -722,12 +749,10 @@
         
         let savedData = null;
         
-        // First try to load by Telegram ID
         if (userId) {
           savedData = localStorage.getItem(`userData_${userId}`);
         }
         
-        // If not found, try to load any existing data
         if (!savedData) {
           const keys = Object.keys(localStorage);
           for (const key of keys) {
@@ -741,7 +766,6 @@
         if (savedData) {
           const data = JSON.parse(savedData);
           
-          // Verify data belongs to current user
           if (userId && data.userId && data.userId !== userId) {
             console.log("Data belongs to different user, ignoring");
             resetUserData();
@@ -774,14 +798,6 @@
             };
           }
           
-          if (data.taskVerification) {
-            taskVerification = {
-              telegram: !!data.taskVerification.telegram,
-              twitter: !!data.taskVerification.twitter,
-              share: !!data.taskVerification.share
-            };
-          }
-          
           console.log("User data loaded successfully");
         } else {
           console.log("No saved data found, initializing new user");
@@ -801,7 +817,6 @@
           earnedFromReferrals: earnedFromReferrals,
           earnedFromTasks: earnedFromTasks,
           completedTasks: completedTasks,
-          taskVerification: taskVerification,
           lastUpdated: new Date().toISOString(),
           userId: currentUser.id
         };
@@ -823,11 +838,6 @@
         twitter: false,
         share: false,
         invite: false
-      };
-      taskVerification = {
-        telegram: false,
-        twitter: false,
-        share: false
       };
       saveUserData();
     }
@@ -851,12 +861,7 @@
     
     function startTaskVerification(taskType) {
       if (completedTasks[taskType]) {
-        alert("You've already completed this task and earned your tokens!");
-        return;
-      }
-      
-      if (taskVerification[taskType] && ['telegram', 'twitter', 'share'].includes(taskType)) {
-        completeTask(taskType);
+        alert("You've already completed this task!");
         return;
       }
       
@@ -865,59 +870,85 @@
       const title = document.getElementById('verificationTitle');
       const text = document.getElementById('verificationText');
       const actionBtn = document.getElementById('verifyActionBtn');
+      const stepsContainer = document.getElementById('verificationSteps');
+      
+      stepsContainer.innerHTML = '';
       
       switch(taskType) {
         case 'telegram':
           title.textContent = "Verify Telegram Join";
-          text.textContent = "Please join our Telegram channel first, then click Verify to confirm.";
-          actionBtn.textContent = "Open Telegram";
+          
+          // Add verification steps
+          addVerificationStep(stepsContainer, 1, "Join our Telegram channel");
+          addVerificationStep(stepsContainer, 2, "Stay in the channel for verification");
+          
+          text.textContent = "We'll manually verify your membership";
+          actionBtn.textContent = "Join Channel";
           actionBtn.onclick = function() {
             window.open(SOCIAL_LINKS.telegram, '_blank');
-            setTimeout(() => {
-              taskVerification.telegram = true;
-              saveUserData();
-              completeTaskVerification();
-            }, 2000);
+            startManualVerification('telegram');
           };
           break;
           
         case 'twitter':
           title.textContent = "Verify Twitter Follow";
-          text.textContent = "Please follow us on Twitter first, then click Verify to confirm.";
-          actionBtn.textContent = "Open Twitter";
+          
+          // Add verification steps
+          addVerificationStep(stepsContainer, 1, "Follow our Twitter page");
+          addVerificationStep(stepsContainer, 2, "Wait for manual verification");
+          
+          text.textContent = "We'll manually verify your follow";
+          actionBtn.textContent = "Follow Us";
           actionBtn.onclick = function() {
             window.open(SOCIAL_LINKS.twitter, '_blank');
-            setTimeout(() => {
-              taskVerification.twitter = true;
-              saveUserData();
-              completeTaskVerification();
-            }, 2000);
+            startManualVerification('twitter');
           };
           break;
           
         case 'share':
           title.textContent = "Verify Social Share";
-          text.textContent = "Please share our community on your social media, then click Verify to confirm.";
+          
+          // Add verification steps
+          addVerificationStep(stepsContainer, 1, "Share our community link");
+          addVerificationStep(stepsContainer, 2, "Provide proof of sharing if needed");
+          
+          text.textContent = "Share on your social media to complete";
           actionBtn.textContent = "Share Now";
           actionBtn.onclick = function() {
             window.open(SOCIAL_LINKS.share, '_blank');
-            setTimeout(() => {
-              taskVerification.share = true;
-              saveUserData();
-              completeTaskVerification();
-            }, 2000);
+            startManualVerification('share');
           };
           break;
       }
       
       modal.style.display = 'flex';
     }
+
+    function addVerificationStep(container, number, text) {
+      const stepDiv = document.createElement('div');
+      stepDiv.className = 'verification-step';
+      stepDiv.innerHTML = `
+        <div class="step-number">${number}</div>
+        <div class="step-text">${text}</div>
+      `;
+      container.appendChild(stepDiv);
+    }
     
-    function completeTaskVerification() {
-      if (!currentVerificationTask) return;
+    function startManualVerification(taskType) {
+      const btn = document.getElementById(`${taskType}TaskBtn`);
+      btn.innerHTML = '<div class="spinner"></div>';
+      btn.disabled = true;
       
-      closeVerificationModal();
-      completeTask(currentVerificationTask);
+      // Simulate manual verification (in real app, this would be done by admin)
+      setTimeout(() => {
+        completeTask(taskType);
+        btn.textContent = "Completed";
+        btn.classList.remove('verify');
+        btn.classList.add('completed');
+        btn.disabled = false;
+        closeVerificationModal();
+        alert("Verification complete! 100 SYM tokens added to your balance.");
+      }, 3000);
     }
     
     function closeVerificationModal() {
@@ -927,15 +958,8 @@
     
     function completeTask(taskType) {
       if (completedTasks[taskType]) {
-        alert("You've already completed this task and earned your tokens!");
+        alert("You've already completed this task!");
         return;
-      }
-      
-      if (['telegram', 'twitter', 'share'].includes(taskType)) {
-        if (!taskVerification[taskType]) {
-          alert("Please verify the task first by clicking Verify");
-          return;
-        }
       }
       
       completedTasks[taskType] = true;
@@ -943,16 +967,13 @@
       const tokensToAdd = 100;
       tokenBalance += tokensToAdd;
       
-      if (taskType === 'invite') {
-      } else {
+      if (taskType !== 'invite') {
         earnedFromTasks += tokensToAdd;
       }
       
       updateTokenBalance();
       updateTaskButtons();
       saveUserData();
-      
-      alert(`Task completed! You earned ${tokensToAdd} SYM tokens.\nTotal balance: ${tokenBalance} SYM`);
     }
     
     function updateTaskButtons() {
@@ -960,30 +981,18 @@
       const telegramBtn = document.getElementById('telegramTaskBtn');
       if (completedTasks.telegram) {
         telegramTask.classList.add('hidden');
-      } else if (taskVerification.telegram) {
-        telegramBtn.textContent = "Complete";
-        telegramBtn.classList.remove('verify');
-        telegramBtn.onclick = function() { completeTask('telegram'); };
       }
       
       const twitterTask = document.getElementById('twitterTask');
       const twitterBtn = document.getElementById('twitterTaskBtn');
       if (completedTasks.twitter) {
         twitterTask.classList.add('hidden');
-      } else if (taskVerification.twitter) {
-        twitterBtn.textContent = "Complete";
-        twitterBtn.classList.remove('verify');
-        twitterBtn.onclick = function() { completeTask('twitter'); };
       }
       
       const shareTask = document.getElementById('shareTask');
       const shareBtn = document.getElementById('shareTaskBtn');
       if (completedTasks.share) {
         shareTask.classList.add('hidden');
-      } else if (taskVerification.share) {
-        shareBtn.textContent = "Complete";
-        shareBtn.classList.remove('verify');
-        shareBtn.onclick = function() { completeTask('share'); };
       }
       
       const inviteTask = document.getElementById('inviteTask');
@@ -1006,9 +1015,9 @@
       const tg = window.Telegram.WebApp;
       const referralLink = `https://t.me/whitesymbol_bot?start=${currentUser.id}`;
       
-      const message = `Join WHITE SYMBOL and earn tokens with me! 馃殌\n\n` +
+      const message = `Join WHITE SYMBOL and earn tokens with me! 🚀\n\n` +
                      `Use my referral link to get started:\n${referralLink}\n\n` +
-                     `Let's build the community together! 馃拵`;
+                     `Let's build the community together! 💎`;
       
       if (tg.platform !== "unknown") {
           tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(message)}`);
@@ -1035,19 +1044,25 @@
     }
 
     function handleFriendParticipation(referrerId) {
+      // Check if this referral was already processed
+      if (localStorage.getItem(`referral_processed_${referrerId}_${currentUser.id}`)) {
+        return;
+      }
+      
       const referrerData = localStorage.getItem(`userData_${referrerId}`);
       
       if (referrerData) {
         try {
           const data = JSON.parse(referrerData);
           
-          // Only reward if the friend actually starts earning coins
+          // Verify friend actually started earning
           if (hasFriendStartedEarning()) {
             data.totalReferrals = (data.totalReferrals || 0) + 1;
             data.earnedFromReferrals = (data.earnedFromReferrals || 0) + 100;
             data.tokenBalance = (data.tokenBalance || 0) + 100;
             
             localStorage.setItem(`userData_${referrerId}`, JSON.stringify(data));
+            localStorage.setItem(`referral_processed_${referrerId}_${currentUser.id}`, 'true');
             
             if (referrerId === currentUser.id) {
               totalReferrals = data.totalReferrals;
@@ -1055,21 +1070,7 @@
               tokenBalance = data.tokenBalance;
               updateTokenBalance();
               
-              const friendsList = document.getElementById('friendsList');
-              if (friendsList.children.length === 1 && friendsList.children[0].querySelector('.friend-name').textContent === "No friends joined yet") {
-                friendsList.innerHTML = '';
-              }
-              
-              const friendItem = document.createElement('div');
-              friendItem.className = 'friend-item';
-              friendItem.innerHTML = `
-                <div class="friend-info">
-                  <div class="friend-name">New Friend</div>
-                  <div class="friend-date">Joined just now</div>
-                </div>
-                <div class="friend-tokens">+100 SYM</div>
-              `;
-              friendsList.prepend(friendItem);
+              updateFriendsList();
             }
           }
         } catch (e) {
@@ -1078,11 +1079,30 @@
       }
     }
 
-    // Simulate checking if friend started earning coins
     function hasFriendStartedEarning() {
-      // In a real implementation, you would check if the referred friend
+      // In a real implementation, you would check if the friend
       // has actually started earning coins in the game
-      return true; // For demo purposes, always return true
+      // For demo purposes, we'll simulate a 80% chance of real participation
+      return Math.random() < 0.8;
+    }
+
+    function updateFriendsList() {
+      const friendsList = document.getElementById('friendsList');
+      if (friendsList.children.length === 1 && 
+          friendsList.children[0].querySelector('.friend-name').textContent === "No friends joined yet") {
+        friendsList.innerHTML = '';
+      }
+      
+      const friendItem = document.createElement('div');
+      friendItem.className = 'friend-item';
+      friendItem.innerHTML = `
+        <div class="friend-info">
+          <div class="friend-name">New Friend</div>
+          <div class="friend-date">Joined just now</div>
+        </div>
+        <div class="friend-tokens">+100 SYM</div>
+      `;
+      friendsList.prepend(friendItem);
     }
 
     function openAdminPanel() {
