@@ -683,8 +683,8 @@
         document.getElementById('adminBtn').addEventListener('click', openAdminPanel);
       }
       
-      document.getElementById('referralCode').textContent = `https://t.me/whitesymbol_bot?ref=${currentUser.id}`;
-      SOCIAL_LINKS.share = `https://t.me/share/url?url=https://t.me/whitesymbol_bot?ref=${currentUser.id}&text=Join%20WHITE%20SYMBOL%20Community%20and%20earn%20tokens!`;
+      document.getElementById('referralCode').textContent = `https://t.me/whitesymbol_bot?start=${currentUser.id}`;
+      SOCIAL_LINKS.share = `https://t.me/share/url?url=https://t.me/whitesymbol_bot?start=${currentUser.id}&text=Join%20WHITE%20SYMBOL%20Community%20and%20earn%20tokens!`;
 
       document.getElementById('telegramTaskBtn').addEventListener('click', function() {
         startTaskVerification('telegram');
@@ -1004,7 +1004,7 @@
     
     function inviteFriend() {
       const tg = window.Telegram.WebApp;
-      const referralLink = `https://t.me/whitesymbol_bot?ref=${currentUser.id}`;
+      const referralLink = `https://t.me/whitesymbol_bot?start=${currentUser.id}`;
       
       const message = `Join WHITE SYMBOL and earn tokens with me! 🚀\n\n` +
                      `Use my referral link to get started:\n${referralLink}\n\n` +
@@ -1025,7 +1025,7 @@
 
     function checkReferral() {
       const urlParams = new URLSearchParams(window.location.search);
-      const refParam = urlParams.get('ref');
+      const refParam = urlParams.get('start');
       
       if (refParam && refParam !== currentUser.id) {
         setTimeout(() => {
@@ -1041,38 +1041,48 @@
         try {
           const data = JSON.parse(referrerData);
           
-          data.totalReferrals = (data.totalReferrals || 0) + 1;
-          data.earnedFromReferrals = (data.earnedFromReferrals || 0) + 100;
-          data.tokenBalance = (data.tokenBalance || 0) + 100;
-          
-          localStorage.setItem(`userData_${referrerId}`, JSON.stringify(data));
-          
-          if (referrerId === currentUser.id) {
-            totalReferrals = data.totalReferrals;
-            earnedFromReferrals = data.earnedFromReferrals;
-            tokenBalance = data.tokenBalance;
-            updateTokenBalance();
+          // Only reward if the friend actually starts earning coins
+          if (hasFriendStartedEarning()) {
+            data.totalReferrals = (data.totalReferrals || 0) + 1;
+            data.earnedFromReferrals = (data.earnedFromReferrals || 0) + 100;
+            data.tokenBalance = (data.tokenBalance || 0) + 100;
             
-            const friendsList = document.getElementById('friendsList');
-            if (friendsList.children.length === 1 && friendsList.children[0].querySelector('.friend-name').textContent === "No friends joined yet") {
-              friendsList.innerHTML = '';
+            localStorage.setItem(`userData_${referrerId}`, JSON.stringify(data));
+            
+            if (referrerId === currentUser.id) {
+              totalReferrals = data.totalReferrals;
+              earnedFromReferrals = data.earnedFromReferrals;
+              tokenBalance = data.tokenBalance;
+              updateTokenBalance();
+              
+              const friendsList = document.getElementById('friendsList');
+              if (friendsList.children.length === 1 && friendsList.children[0].querySelector('.friend-name').textContent === "No friends joined yet") {
+                friendsList.innerHTML = '';
+              }
+              
+              const friendItem = document.createElement('div');
+              friendItem.className = 'friend-item';
+              friendItem.innerHTML = `
+                <div class="friend-info">
+                  <div class="friend-name">New Friend</div>
+                  <div class="friend-date">Joined just now</div>
+                </div>
+                <div class="friend-tokens">+100 SYM</div>
+              `;
+              friendsList.prepend(friendItem);
             }
-            
-            const friendItem = document.createElement('div');
-            friendItem.className = 'friend-item';
-            friendItem.innerHTML = `
-              <div class="friend-info">
-                <div class="friend-name">New Friend</div>
-                <div class="friend-date">Joined just now</div>
-              </div>
-              <div class="friend-tokens">+100 SYM</div>
-            `;
-            friendsList.prepend(friendItem);
           }
         } catch (e) {
           console.error("Error updating referrer data:", e);
         }
       }
+    }
+
+    // Simulate checking if friend started earning coins
+    function hasFriendStartedEarning() {
+      // In a real implementation, you would check if the referred friend
+      // has actually started earning coins in the game
+      return true; // For demo purposes, always return true
     }
 
     function openAdminPanel() {
